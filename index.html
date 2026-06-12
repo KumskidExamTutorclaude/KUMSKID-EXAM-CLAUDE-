@@ -4,6 +4,8 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>KUMSKID Exam Tutor — Pass WAEC & JAMB</title>
+<link rel="manifest" href="/manifest.json">
+<meta name="theme-color" content="#2563eb">
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Nunito:wght@400;500;600;700;800;900&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="https://checkout.flutterwave.com/v3.js"></script>
@@ -240,6 +242,15 @@ body{background:var(--bg);color:var(--text);font-family:'Nunito',sans-serif;min-
 .lb-tabs{display:flex;gap:8px;margin-bottom:20px;flex-wrap:wrap;}
 .lb-tab{padding:8px 16px;border-radius:8px;border:1px solid var(--border);background:transparent;color:var(--muted);cursor:pointer;font-family:'Nunito',sans-serif;font-weight:700;font-size:12px;transition:all 0.2s;}
 .lb-tab.active{background:var(--blue);color:white;border-color:var(--blue);}
+
+/* Copy protection - exam screen only */
+#screen-exam, #screen-exam * {
+  -webkit-user-select: none;
+  -moz-user-select: none;
+  -ms-user-select: none;
+  user-select: none;
+  -webkit-touch-callout: none;
+}
 </style>
 </head>
 <body>
@@ -1533,6 +1544,53 @@ document.getElementById('ai-chat-input').addEventListener('input', function(){
   this.style.height='';
   this.style.height=Math.min(this.scrollHeight, 80)+'px';
 });
+
+// ── Exam Copy Protection ─────────────────────────────────────────────
+function isOnExamScreen(){
+  const examScreen = document.getElementById('screen-exam');
+  return examScreen && examScreen.classList.contains('active');
+}
+
+// Block right-click / long-press context menu
+document.addEventListener('contextmenu', function(e){
+  if(isOnExamScreen()) e.preventDefault();
+});
+
+// Block copy, cut, paste
+['copy','cut','paste'].forEach(function(evt){
+  document.addEventListener(evt, function(e){
+    if(isOnExamScreen()) e.preventDefault();
+  });
+});
+
+// Block keyboard shortcuts (Ctrl/Cmd + C, X, U, P, S, Shift+I for devtools)
+document.addEventListener('keydown', function(e){
+  if(!isOnExamScreen()) return;
+  const k = e.key.toLowerCase();
+  if((e.ctrlKey || e.metaKey) && ['c','x','u','p','s','a'].includes(k)){
+    e.preventDefault();
+  }
+  if((e.ctrlKey || e.metaKey) && e.shiftKey && k==='i'){
+    e.preventDefault();
+  }
+  if(e.key==='F12'){
+    e.preventDefault();
+  }
+});
+
+// Block text selection via drag
+document.addEventListener('selectstart', function(e){
+  if(isOnExamScreen()) e.preventDefault();
+});
+
+// ── PWA: Register Service Worker (enables offline support) ─────────────
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('/sw.js')
+      .then(() => console.log('KUMSKID: Service worker registered'))
+      .catch((err) => console.log('KUMSKID: Service worker failed', err));
+  });
+}
 </script>
 
 </body>
