@@ -1,0 +1,1075 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>KUMSKID Admin Dashboard</title>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Nunito:wght@400;600;700;800;900&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="https://cdn.jsdelivr.net/npm/papaparse@5.4.1/papaparse.min.js"></script>
+<style>
+:root{--bg:#080c14;--surface:#0f1623;--card:#141d2e;--border:rgba(37,99,235,0.2);--blue:#2563eb;--blue2:#3b82f6;--green:#22c55e;--red:#ef4444;--orange:#f59e0b;--text:#f1f5f9;--muted:#64748b;}
+*{margin:0;padding:0;box-sizing:border-box;}
+body{background:var(--bg);color:var(--text);font-family:'Nunito',sans-serif;min-height:100vh;}
+.screen{display:none;min-height:100vh;}
+.screen.active{display:block;}
+
+/* LOGIN */
+#screen-login{display:flex;align-items:center;justify-content:center;min-height:100vh;padding:20px;}
+.login-box{background:var(--card);border:1px solid var(--border);border-radius:20px;padding:40px;width:100%;max-width:400px;}
+.login-logo{font-family:'Bebas Neue',sans-serif;font-size:1.8rem;letter-spacing:2px;text-align:center;margin-bottom:6px;}
+.login-logo span{color:var(--blue2);}
+.login-sub{text-align:center;color:var(--muted);font-size:13px;margin-bottom:28px;}
+.form-group{margin-bottom:16px;}
+.form-group label{display:block;font-size:12px;font-weight:700;color:var(--muted);letter-spacing:1px;text-transform:uppercase;margin-bottom:6px;}
+.form-group input,.form-group select,.form-group textarea{width:100%;padding:12px 14px;background:var(--surface);border:1px solid var(--border);border-radius:8px;color:var(--text);font-family:'Nunito',sans-serif;font-size:14px;outline:none;transition:border-color 0.2s;}
+.form-group input:focus,.form-group select:focus,.form-group textarea:focus{border-color:var(--blue);}
+.form-group textarea{resize:vertical;min-height:80px;}
+.btn{padding:12px 24px;border-radius:8px;border:none;cursor:pointer;font-family:'Nunito',sans-serif;font-weight:700;font-size:14px;transition:all 0.2s;}
+.btn-primary{background:var(--blue);color:white;}
+.btn-primary:hover{background:var(--blue2);}
+.btn-green{background:var(--green);color:white;}
+.btn-red{background:var(--red);color:white;}
+.btn-outline{background:transparent;border:1px solid var(--border);color:var(--text);}
+.btn-full{width:100%;}
+.btn-sm{padding:6px 14px;font-size:12px;border-radius:6px;}
+.msg{text-align:center;font-size:13px;margin-top:12px;padding:10px;border-radius:8px;display:none;}
+.msg.error{background:rgba(239,68,68,0.1);border:1px solid rgba(239,68,68,0.3);color:#fca5a5;}
+.msg.success{background:rgba(34,197,94,0.1);border:1px solid rgba(34,197,94,0.3);color:#86efac;}
+
+/* ADMIN LAYOUT */
+.admin-layout{display:flex;min-height:100vh;}
+.sidebar{width:220px;background:var(--surface);border-right:1px solid var(--border);padding:20px 0;flex-shrink:0;position:fixed;top:0;left:0;height:100vh;overflow-y:auto;z-index:100;}
+.sidebar-logo{font-family:'Bebas Neue',sans-serif;font-size:1.3rem;letter-spacing:2px;padding:0 20px 20px;border-bottom:1px solid var(--border);margin-bottom:12px;}
+.sidebar-logo span{color:var(--blue2);}
+.nav-item{display:flex;align-items:center;gap:10px;padding:12px 20px;cursor:pointer;transition:all 0.2s;font-weight:700;font-size:14px;color:var(--muted);}
+.nav-item:hover{background:rgba(37,99,235,0.08);color:var(--text);}
+.nav-item.active{background:rgba(37,99,235,0.15);color:var(--blue2);border-right:3px solid var(--blue);}
+.nav-item .icon{font-size:18px;width:24px;text-align:center;}
+.admin-main{margin-left:220px;flex:1;padding:28px;min-height:100vh;}
+.page{display:none;}
+.page.active{display:block;}
+.page-title{font-family:'Bebas Neue',sans-serif;font-size:2rem;letter-spacing:1px;margin-bottom:6px;}
+.page-sub{color:var(--muted);font-size:13px;margin-bottom:28px;}
+
+/* STATS GRID */
+.stats-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:16px;margin-bottom:32px;}
+.stat-card{background:var(--card);border:1px solid var(--border);border-radius:14px;padding:22px;}
+.stat-card .num{font-family:'Bebas Neue',sans-serif;font-size:2.5rem;letter-spacing:1px;color:var(--blue2);}
+.stat-card .label{font-size:12px;color:var(--muted);text-transform:uppercase;letter-spacing:1px;margin-top:4px;}
+.stat-card .sub{font-size:12px;color:var(--muted);margin-top:6px;}
+
+/* TABLE */
+.table-wrap{background:var(--card);border:1px solid var(--border);border-radius:14px;overflow:hidden;}
+.table-header{padding:16px 20px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;}
+.search-input{padding:9px 14px;background:var(--surface);border:1px solid var(--border);border-radius:8px;color:var(--text);font-family:'Nunito',sans-serif;font-size:13px;outline:none;width:260px;}
+.search-input:focus{border-color:var(--blue);}
+.filter-select{padding:9px 14px;background:var(--surface);border:1px solid var(--border);border-radius:8px;color:var(--text);font-family:'Nunito',sans-serif;font-size:13px;outline:none;}
+table{width:100%;border-collapse:collapse;}
+th{text-align:left;padding:12px 16px;font-size:11px;font-weight:800;letter-spacing:1px;text-transform:uppercase;color:var(--muted);border-bottom:1px solid var(--border);background:var(--surface);}
+td{padding:12px 16px;font-size:13px;border-bottom:1px solid rgba(255,255,255,0.04);vertical-align:top;}
+tr:last-child td{border-bottom:none;}
+tr:hover td{background:rgba(37,99,235,0.03);}
+.badge{padding:3px 10px;border-radius:20px;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.5px;}
+.badge-waec{background:rgba(34,197,94,0.15);color:var(--green);}
+.badge-jamb{background:rgba(37,99,235,0.15);color:var(--blue2);}
+.badge-free{background:rgba(100,116,139,0.15);color:var(--muted);}
+.badge-premium{background:rgba(245,158,11,0.15);color:var(--orange);}
+.q-text{max-width:280px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.pagination{display:flex;align-items:center;justify-content:space-between;padding:14px 20px;border-top:1px solid var(--border);font-size:13px;color:var(--muted);}
+.page-btns{display:flex;gap:6px;}
+.page-btn{padding:6px 12px;border-radius:6px;border:1px solid var(--border);background:transparent;color:var(--text);cursor:pointer;font-family:'Nunito',sans-serif;font-size:12px;}
+.page-btn.active{background:var(--blue);border-color:var(--blue);}
+.page-btn:disabled{opacity:0.3;cursor:not-allowed;}
+
+/* FORM CARD */
+.form-card{background:var(--card);border:1px solid var(--border);border-radius:14px;padding:28px;margin-bottom:20px;}
+.form-card h3{font-family:'Bebas Neue',sans-serif;font-size:1.3rem;letter-spacing:1px;margin-bottom:20px;}
+.form-row{display:grid;grid-template-columns:1fr 1fr;gap:16px;}
+.form-row-3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:16px;}
+
+/* CSV UPLOAD */
+.upload-zone{border:2px dashed rgba(37,99,235,0.3);border-radius:12px;padding:40px;text-align:center;cursor:pointer;transition:all 0.2s;background:rgba(37,99,235,0.03);}
+.upload-zone:hover{border-color:var(--blue);background:rgba(37,99,235,0.06);}
+.upload-zone.dragging{border-color:var(--blue);background:rgba(37,99,235,0.1);}
+.upload-icon{font-size:40px;margin-bottom:12px;}
+.upload-title{font-weight:800;font-size:15px;margin-bottom:6px;}
+.upload-sub{font-size:13px;color:var(--muted);}
+
+/* MODAL */
+.modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,0.7);z-index:1000;display:none;align-items:center;justify-content:center;padding:20px;}
+.modal-overlay.open{display:flex;}
+.modal{background:var(--card);border:1px solid var(--border);border-radius:16px;padding:28px;width:100%;max-width:600px;max-height:90vh;overflow-y:auto;}
+.modal h3{font-family:'Bebas Neue',sans-serif;font-size:1.4rem;letter-spacing:1px;margin-bottom:20px;}
+.modal-footer{display:flex;gap:10px;justify-content:flex-end;margin-top:20px;padding-top:16px;border-top:1px solid var(--border);}
+
+/* TOAST */
+.toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:var(--card);border:1px solid var(--border);border-radius:10px;padding:12px 24px;font-size:14px;font-weight:600;z-index:9999;display:none;box-shadow:0 8px 32px rgba(0,0,0,0.4);}
+.toast.show{display:block;}
+
+/* LOADING */
+.loading{display:flex;align-items:center;justify-content:center;padding:60px;color:var(--muted);gap:10px;}
+.spinner{width:20px;height:20px;border:2px solid var(--border);border-top-color:var(--blue);border-radius:50%;animation:spin 0.6s linear infinite;}
+@keyframes spin{to{transform:rotate(360deg);}}
+
+/* SUBJECT BREAKDOWN */
+.subject-row{display:flex;align-items:center;gap:12px;padding:12px 0;border-bottom:1px solid var(--border);}
+.subject-bar{flex:1;height:6px;background:rgba(255,255,255,0.08);border-radius:3px;overflow:hidden;}
+.subject-bar-fill{height:100%;background:linear-gradient(90deg,var(--blue),var(--blue2));border-radius:3px;}
+
+@media(max-width:768px){
+  .sidebar{width:100%;height:auto;position:relative;}
+  .admin-main{margin-left:0;}
+  .form-row,.form-row-3{grid-template-columns:1fr;}
+  .search-input{width:100%;}
+}
+</style>
+</head>
+<body>
+
+<div class="toast" id="toast"></div>
+
+<!-- LOGIN SCREEN -->
+<div class="screen active" id="screen-login">
+  <div class="login-box">
+    <div class="login-logo">KUMSKID <span>ADMIN</span></div>
+    <div class="login-sub">Restricted access — administrators only</div>
+    <div class="form-group">
+      <label>Email Address</label>
+      <input type="email" id="admin-email" placeholder="your@email.com">
+    </div>
+    <div class="form-group">
+      <label>Password</label>
+      <input type="password" id="admin-password" placeholder="Enter password">
+    </div>
+    <button class="btn btn-primary btn-full" onclick="adminLogin()" style="margin-top:8px;">Login to Admin</button>
+    <div class="msg" id="login-msg"></div>
+  </div>
+</div>
+
+<!-- ADMIN DASHBOARD SCREEN -->
+<div class="screen" id="screen-admin">
+  <div class="admin-layout">
+
+    <!-- SIDEBAR -->
+    <div class="sidebar">
+      <div class="sidebar-logo">KUMSKID <span>ADMIN</span></div>
+      <div class="nav-item active" onclick="showPage('overview')" id="nav-overview"><span class="icon">📊</span> Overview</div>
+      <div class="nav-item" onclick="showPage('questions')" id="nav-questions"><span class="icon">📝</span> Questions</div>
+      <div class="nav-item" onclick="showPage('add-question')" id="nav-add-question"><span class="icon">➕</span> Add Question</div>
+      <div class="nav-item" onclick="showPage('bulk-upload')" id="nav-bulk-upload"><span class="icon">📤</span> Bulk Upload</div>
+      <div class="nav-item" onclick="showPage('students')" id="nav-students"><span class="icon">👥</span> Students</div>
+      <div class="nav-item" onclick="showPage('results')" id="nav-results"><span class="icon">🏆</span> Results</div>
+      <div class="nav-item" onclick="showPage('announcements')" id="nav-announcements"><span class="icon">📢</span> Announcements</div>
+      <div class="nav-item" onclick="showPage('schools')" id="nav-schools"><span class="icon">🏫</span> Schools</div>
+      <div class="nav-item" style="margin-top:auto;border-top:1px solid var(--border);padding-top:16px;" onclick="adminLogout()"><span class="icon">🚪</span> Logout</div>
+    </div>
+
+    <!-- MAIN CONTENT -->
+    <div class="admin-main">
+
+      <!-- OVERVIEW PAGE -->
+      <div class="page active" id="page-overview">
+        <div class="page-title">Overview</div>
+        <div class="page-sub">Platform statistics and summary</div>
+        <div class="stats-grid" id="overview-stats">
+          <div class="loading"><div class="spinner"></div></div>
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px;flex-wrap:wrap;">
+          <div class="form-card" style="margin-bottom:0;">
+            <h3>Questions by Subject</h3>
+            <div id="subject-breakdown"><div class="loading"><div class="spinner"></div></div></div>
+          </div>
+          <div class="form-card" style="margin-bottom:0;">
+            <h3>Recent Registrations</h3>
+            <div id="recent-students"><div class="loading"><div class="spinner"></div></div></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- QUESTIONS PAGE -->
+      <div class="page" id="page-questions">
+        <div class="page-title">Questions</div>
+        <div class="page-sub">Manage all past questions in the database</div>
+        <div class="table-wrap">
+          <div class="table-header">
+            <input class="search-input" id="q-search" placeholder="🔍 Search questions..." oninput="filterQuestions()">
+            <div style="display:flex;gap:8px;flex-wrap:wrap;">
+              <select class="filter-select" id="q-filter-subject" onchange="filterQuestions()">
+                <option value="">All Subjects</option>
+                <option>Mathematics</option><option>English</option><option>Biology</option>
+                <option>Chemistry</option><option>Physics</option><option>Economics</option>
+                <option>Literature</option><option>Geography</option>
+              </select>
+              <select class="filter-select" id="q-filter-type" onchange="filterQuestions()">
+                <option value="">WAEC & JAMB</option>
+                <option value="WAEC">WAEC</option>
+                <option value="JAMB">JAMB</option>
+              </select>
+            </div>
+          </div>
+          <div style="overflow-x:auto;">
+            <table>
+              <thead><tr><th>#</th><th>Question</th><th>Subject</th><th>Type</th><th>Year</th><th>Answer</th><th>Actions</th></tr></thead>
+              <tbody id="questions-tbody"><tr><td colspan="7"><div class="loading"><div class="spinner"></div> Loading questions...</div></td></tr></tbody>
+            </table>
+          </div>
+          <div class="pagination">
+            <span id="q-pagination-info">Loading...</span>
+            <div class="page-btns" id="q-pagination-btns"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ADD QUESTION PAGE -->
+      <div class="page" id="page-add-question">
+        <div class="page-title">Add Question</div>
+        <div class="page-sub">Add a new question to the database</div>
+        <div class="form-card">
+          <div class="form-row">
+            <div class="form-group">
+              <label>Subject</label>
+              <select id="aq-subject">
+                <option>Mathematics</option><option>English</option><option>Biology</option>
+                <option>Chemistry</option><option>Physics</option><option>Economics</option>
+                <option>Literature</option><option>Geography</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label>Exam Type</label>
+              <select id="aq-type">
+                <option value="WAEC">WAEC</option>
+                <option value="JAMB">JAMB</option>
+                <option value="NECO">NECO</option>
+              </select>
+            </div>
+          </div>
+          <div class="form-group">
+            <label>Year</label>
+            <input type="number" id="aq-year" placeholder="e.g. 2023" min="1990" max="2030">
+          </div>
+          <div class="form-group">
+            <label>Question</label>
+            <textarea id="aq-question" placeholder="Enter the full question text here..."></textarea>
+          </div>
+          <div class="form-row">
+            <div class="form-group"><label>Option A</label><input type="text" id="aq-a" placeholder="Option A"></div>
+            <div class="form-group"><label>Option B</label><input type="text" id="aq-b" placeholder="Option B"></div>
+          </div>
+          <div class="form-row">
+            <div class="form-group"><label>Option C</label><input type="text" id="aq-c" placeholder="Option C"></div>
+            <div class="form-group"><label>Option D</label><input type="text" id="aq-d" placeholder="Option D"></div>
+          </div>
+          <div class="form-row">
+            <div class="form-group">
+              <label>Correct Answer</label>
+              <select id="aq-answer">
+                <option value="A">A</option><option value="B">B</option>
+                <option value="C">C</option><option value="D">D</option>
+              </select>
+            </div>
+          </div>
+          <div class="form-group">
+            <label>Explanation</label>
+            <textarea id="aq-explanation" placeholder="Explain why the answer is correct..."></textarea>
+          </div>
+          <div style="display:flex;gap:10px;margin-top:8px;">
+            <button class="btn btn-green" onclick="saveQuestion()">✅ Save Question</button>
+            <button class="btn btn-outline" onclick="clearQuestionForm()">Clear</button>
+          </div>
+          <div class="msg" id="aq-msg"></div>
+        </div>
+      </div>
+
+      <!-- BULK UPLOAD PAGE -->
+      <div class="page" id="page-bulk-upload">
+        <div class="page-title">Bulk Upload</div>
+        <div class="page-sub">Upload hundreds of questions at once using CSV</div>
+
+        <div class="form-card">
+          <h3>CSV Format</h3>
+          <p style="font-size:13px;color:var(--muted);margin-bottom:16px;line-height:1.7;">Your CSV must have these exact column headers:</p>
+          <div style="background:var(--surface);border-radius:8px;padding:14px;font-family:'Space Mono',monospace;font-size:12px;color:var(--blue2);overflow-x:auto;margin-bottom:16px;">subject,exam_type,year,question,option_a,option_b,option_c,option_d,correct_answer,explanation</div>
+          <p style="font-size:12px;color:var(--muted);margin-bottom:16px;">Example row:<br><span style="font-family:'Space Mono',monospace;font-size:11px;color:rgba(241,245,249,0.6);">Geography,WAEC,2023,What is the capital of Nigeria?,Lagos,Abuja,Kano,Ibadan,B,Abuja became the capital in 1991.</span></p>
+          <button class="btn btn-outline btn-sm" onclick="downloadTemplate()">⬇ Download Template CSV</button>
+        </div>
+
+        <div class="form-card">
+          <h3>Upload CSV File</h3>
+          <div class="upload-zone" id="upload-zone" onclick="document.getElementById('csv-file').click()" ondragover="event.preventDefault();this.classList.add('dragging')" ondragleave="this.classList.remove('dragging')" ondrop="handleDrop(event)">
+            <div class="upload-icon">📄</div>
+            <div class="upload-title">Click to upload or drag & drop</div>
+            <div class="upload-sub">CSV files only · Max 5MB</div>
+          </div>
+          <input type="file" id="csv-file" accept=".csv" style="display:none;" onchange="handleCSV(event)">
+          <div id="csv-preview" style="margin-top:16px;display:none;">
+            <div style="font-weight:800;margin-bottom:10px;" id="csv-count"></div>
+            <div style="max-height:200px;overflow-y:auto;background:var(--surface);border-radius:8px;padding:12px;">
+              <table style="width:100%;font-size:12px;">
+                <thead><tr id="csv-preview-head"></tr></thead>
+                <tbody id="csv-preview-body"></tbody>
+              </table>
+            </div>
+            <div style="display:flex;gap:10px;margin-top:16px;">
+              <button class="btn btn-green" id="csv-upload-btn" onclick="uploadCSV()">⬆ Upload All Questions</button>
+              <button class="btn btn-outline" onclick="clearCSV()">Cancel</button>
+            </div>
+            <div class="msg" id="csv-msg"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- STUDENTS PAGE -->
+      <div class="page" id="page-students">
+        <div class="page-title">Students</div>
+        <div class="page-sub">All registered students</div>
+        <div class="table-wrap">
+          <div class="table-header">
+            <input class="search-input" id="s-search" placeholder="🔍 Search students..." oninput="filterStudents()">
+            <select class="filter-select" id="s-filter-plan" onchange="filterStudents()">
+              <option value="">All Plans</option>
+              <option value="free">Free</option>
+              <option value="premium">Premium</option>
+            </select>
+          </div>
+          <div style="overflow-x:auto;">
+            <table>
+              <thead><tr><th>#</th><th>Name</th><th>Email</th><th>Plan</th><th>Joined</th><th>Actions</th></tr></thead>
+              <tbody id="students-tbody"><tr><td colspan="6"><div class="loading"><div class="spinner"></div> Loading...</div></td></tr></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- RESULTS PAGE -->
+      <div class="page" id="page-results">
+        <div class="page-title">Exam Results</div>
+        <div class="page-sub">All student exam results</div>
+        <div class="table-wrap">
+          <div class="table-header">
+            <select class="filter-select" id="r-filter-subject" onchange="loadResults()">
+              <option value="">All Subjects</option>
+              <option>Mathematics</option><option>English</option><option>Biology</option>
+              <option>Chemistry</option><option>Physics</option><option>Economics</option>
+              <option>Literature</option><option>Geography</option>
+            </select>
+            <select class="filter-select" id="r-filter-type" onchange="loadResults()">
+              <option value="">WAEC & JAMB</option>
+              <option value="WAEC">WAEC</option>
+              <option value="JAMB">JAMB</option>
+            </select>
+          </div>
+          <div style="overflow-x:auto;">
+            <table>
+              <thead><tr><th>#</th><th>Student</th><th>Subject</th><th>Type</th><th>Score</th><th>Total</th><th>%</th><th>Date</th></tr></thead>
+              <tbody id="results-tbody"><tr><td colspan="8"><div class="loading"><div class="spinner"></div> Loading...</div></td></tr></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+      <!-- ANNOUNCEMENTS PAGE -->
+      <div class="page" id="page-announcements">
+        <div class="page-title">Announcements</div>
+        <div class="page-sub">Post updates and notices to all students</div>
+        <div class="form-card">
+          <h3>Post New Announcement</h3>
+          <div class="form-group"><label>Title</label><input type="text" id="ann-title" placeholder="e.g. WAEC GCE Registration is Open"></div>
+          <div class="form-group"><label>Message</label><textarea id="ann-message" placeholder="Write the full announcement here..." style="min-height:100px;"></textarea></div>
+          <div class="form-group">
+            <label>Type</label>
+            <select id="ann-type">
+              <option value="info">ℹ️ Info</option>
+              <option value="success">✅ Good News</option>
+              <option value="warning">⚠️ Important</option>
+              <option value="urgent">🚨 Urgent</option>
+            </select>
+          </div>
+          <button class="btn btn-primary" onclick="postAnnouncement()">📢 Post Announcement</button>
+          <div class="msg" id="ann-msg"></div>
+        </div>
+        <div class="form-card">
+          <h3>Active Announcements</h3>
+          <div id="ann-list"><div class="loading"><div class="spinner"></div></div></div>
+        </div>
+      </div>
+
+      <!-- SCHOOLS PAGE -->
+      <div class="page" id="page-schools">
+        <div class="page-title">Schools</div>
+        <div class="page-sub">Manage school accounts and subscriptions</div>
+
+        <div class="form-card">
+          <h3>Add New School</h3>
+          <div class="form-row">
+            <div class="form-group"><label>School Name</label><input type="text" id="sch-name" placeholder="e.g. Victory Secondary School"></div>
+            <div class="form-group"><label>School Email</label><input type="email" id="sch-email" placeholder="school@email.com"></div>
+          </div>
+          <div class="form-row">
+            <div class="form-group">
+              <label>Login Password <span style="color:var(--muted);font-weight:400;">(for Supabase Auth)</span></label>
+              <div style="display:flex;gap:8px;">
+                <input type="text" id="sch-password" placeholder="Click generate →" style="flex:1;">
+                <button type="button" class="btn btn-outline btn-sm" onclick="generateSchoolPassword()" style="white-space:nowrap;">🎲 Generate</button>
+              </div>
+            </div>
+          </div>
+          <div class="form-row">
+            <div class="form-group">
+              <label>Plan</label>
+              <select id="sch-plan">
+                <option value="small">Small — up to 100 students (₦15,000/month)</option>
+                <option value="medium">Medium — up to 300 students (₦25,000/month)</option>
+                <option value="large">Large — 300+ students (₦40,000/month)</option>
+              </select>
+            </div>
+            <div class="form-group"><label>Custom Student Limit</label><input type="number" id="sch-limit" placeholder="e.g. 100" min="1"></div>
+          </div>
+          <button class="btn btn-primary" onclick="createSchool()">🏫 Create School Account</button>
+          <div class="msg" id="sch-msg"></div>
+
+          <div id="sch-next-steps" style="display:none;margin-top:16px;background:rgba(37,99,235,0.08);border:1px solid var(--border);border-radius:10px;padding:16px;font-size:13px;line-height:1.7;">
+            <div style="font-weight:800;margin-bottom:8px;">📋 Step 2 — Create Supabase Auth Login</div>
+            <ol style="padding-left:20px;margin-bottom:10px;">
+              <li>Go to <strong>Supabase → Authentication → Users → Add user</strong></li>
+              <li>Email: <code id="ns-email" style="background:rgba(0,0,0,0.3);padding:2px 6px;border-radius:4px;"></code></li>
+              <li>Password: <code id="ns-pass" style="background:rgba(0,0,0,0.3);padding:2px 6px;border-radius:4px;"></code></li>
+              <li>✅ Check "Auto Confirm User", then click Create</li>
+              <li>Once school pays, set <strong>active = true</strong> for this school below</li>
+            </ol>
+            <button type="button" class="btn btn-outline btn-sm" onclick="copyCredentials()">📋 Copy Login Details to Share</button>
+          </div>
+        </div>
+
+        <div class="table-wrap">
+          <div class="table-header">
+            <div style="font-weight:800;font-size:14px;">All Schools</div>
+            <button class="btn btn-outline btn-sm" onclick="loadSchools()">↻ Refresh</button>
+          </div>
+          <div style="overflow-x:auto;">
+            <table>
+              <thead><tr><th>#</th><th>School</th><th>Code</th><th>Plan</th><th>Students</th><th>Limit</th><th>Status</th><th>Actions</th></tr></thead>
+              <tbody id="schools-tbody"><tr><td colspan="8"><div class="loading"><div class="spinner"></div></div></td></tr></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<!-- EDIT QUESTION MODAL -->
+<div class="modal-overlay" id="edit-modal">
+  <div class="modal">
+    <h3>Edit Question</h3>
+    <input type="hidden" id="eq-id">
+    <div class="form-row">
+      <div class="form-group"><label>Subject</label>
+        <select id="eq-subject">
+          <option>Mathematics</option><option>English</option><option>Biology</option>
+          <option>Chemistry</option><option>Physics</option><option>Economics</option>
+          <option>Literature</option><option>Geography</option>
+        </select>
+      </div>
+      <div class="form-group"><label>Exam Type</label>
+        <select id="eq-type"><option value="WAEC">WAEC</option><option value="JAMB">JAMB</option><option value="NECO">NECO</option></select>
+      </div>
+    </div>
+    <div class="form-group"><label>Year</label><input type="number" id="eq-year"></div>
+    <div class="form-group"><label>Question</label><textarea id="eq-question"></textarea></div>
+    <div class="form-row">
+      <div class="form-group"><label>Option A</label><input type="text" id="eq-a"></div>
+      <div class="form-group"><label>Option B</label><input type="text" id="eq-b"></div>
+    </div>
+    <div class="form-row">
+      <div class="form-group"><label>Option C</label><input type="text" id="eq-c"></div>
+      <div class="form-group"><label>Option D</label><input type="text" id="eq-d"></div>
+    </div>
+    <div class="form-group"><label>Correct Answer</label>
+      <select id="eq-answer"><option value="A">A</option><option value="B">B</option><option value="C">C</option><option value="D">D</option></select>
+    </div>
+    <div class="form-group"><label>Explanation</label><textarea id="eq-explanation"></textarea></div>
+    <div class="modal-footer">
+      <button class="btn btn-outline" onclick="closeModal()">Cancel</button>
+      <button class="btn btn-primary" onclick="updateQuestion()">Save Changes</button>
+    </div>
+  </div>
+</div>
+
+<script>
+const { createClient } = supabase;
+const sb = createClient('https://olwiktyajpzvatshyysd.supabase.co','sb_publishable_odko5kSLT6dJc3RvpuPMDQ_GeVBQ_uB');
+
+const ADMIN_EMAIL = 'kumayonemmanuel1@gmail.com';
+let allQuestions = [], filteredQuestions = [], allStudents = [], filteredStudents = [];
+let currentPage = 1; const PAGE_SIZE = 20;
+
+// ===== AUTH =====
+async function adminLogin(){
+  const email = document.getElementById('admin-email').value.trim();
+  const pass  = document.getElementById('admin-password').value;
+  const msg   = document.getElementById('login-msg');
+  if(!email||!pass){showMsg(msg,'Please enter email and password','error');return;}
+  showMsg(msg,'Logging in...','success');
+  const{data,error}=await sb.auth.signInWithPassword({email,password:pass});
+  if(error){showMsg(msg,error.message,'error');return;}
+  // Check if admin
+  const{data:adminCheck}=await sb.from('admins').select('email').eq('email',email).single();
+  if(!adminCheck){
+    await sb.auth.signOut();
+    showMsg(msg,'Access denied. Not an admin account.','error');
+    return;
+  }
+  showAdminDashboard();
+}
+
+async function adminLogout(){
+  await sb.auth.signOut();
+  document.getElementById('screen-admin').style.display='none';
+  document.getElementById('screen-login').classList.add('active');
+  document.getElementById('screen-login').style.display='flex';
+}
+
+function showAdminDashboard(){
+  document.getElementById('screen-login').classList.remove('active');
+  document.getElementById('screen-login').style.display='none';
+  document.getElementById('screen-admin').classList.add('active');
+  document.getElementById('screen-admin').style.display='block';
+  loadOverview();
+}
+
+// ===== NAVIGATION =====
+function showPage(page){
+  document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+  document.querySelectorAll('.nav-item').forEach(n=>n.classList.remove('active'));
+  document.getElementById('page-'+page).classList.add('active');
+  document.getElementById('nav-'+page).classList.add('active');
+  if(page==='questions')loadQuestionsPage();
+  if(page==='students')loadStudents();
+  if(page==='results')loadResults();
+  if(page==='announcements')loadAnnouncements();
+  if(page==='schools')loadSchools();
+}
+
+function showMsg(el,msg,type){el.textContent=msg;el.className='msg '+type;el.style.display='block';}
+function toast(msg,col){const t=document.getElementById('toast');t.textContent=msg;t.style.color=col||'#f1f5f9';t.classList.add('show');setTimeout(()=>t.classList.remove('show'),3000);}
+
+// ===== OVERVIEW =====
+async function loadOverview(){
+  const[{count:qCount},{count:sCount},{count:rCount}]=await Promise.all([
+    sb.from('questions').select('*',{count:'exact',head:true}),
+    sb.from('profiles').select('*',{count:'exact',head:true}),
+    sb.from('results').select('*',{count:'exact',head:true}),
+  ]);
+
+  const{count:premCount}=await sb.from('profiles').select('*',{count:'exact',head:true}).eq('plan','premium');
+
+  document.getElementById('overview-stats').innerHTML=`
+    <div class="stat-card"><div class="num">${qCount||0}</div><div class="label">Total Questions</div></div>
+    <div class="stat-card"><div class="num">${sCount||0}</div><div class="label">Total Students</div></div>
+    <div class="stat-card"><div class="num">${rCount||0}</div><div class="label">Exams Taken</div></div>
+    <div class="stat-card"><div class="num" style="color:var(--orange);">${premCount||0}</div><div class="label">Premium Students</div></div>`;
+
+  // Query subject counts directly
+  const subjects=['Mathematics','English','Biology','Chemistry','Physics','Economics','Literature','Geography'];
+  const subjectCounts=await Promise.all(subjects.map(s=>
+    sb.from('questions').select('*',{count:'exact',head:true}).eq('subject',s)
+  ));
+  const counts={};
+  subjects.forEach((s,i)=>{if(subjectCounts[i].count>0)counts[s]=subjectCounts[i].count;});
+  const max=Math.max(...Object.values(counts),1);
+  document.getElementById('subject-breakdown').innerHTML=
+    Object.entries(counts).sort((a,b)=>b[1]-a[1]).map(([s,c])=>`
+      <div class="subject-row">
+        <div style="width:80px;font-size:12px;font-weight:700;">${s}</div>
+        <div class="subject-bar"><div class="subject-bar-fill" style="width:${Math.round(c/max*100)}%"></div></div>
+        <div style="width:40px;text-align:right;font-size:12px;color:var(--blue2);font-weight:700;">${c}</div>
+      </div>`).join('');
+
+  // Recent students
+  const{data:recent}=await sb.from('profiles').select('full_name,email,plan').order('id',{ascending:false}).limit(5);
+  if(recent){
+    document.getElementById('recent-students').innerHTML=recent.map(s=>`
+      <div style="display:flex;justify-content:space-between;align-items:center;padding:10px 0;border-bottom:1px solid var(--border);font-size:13px;">
+        <div><div style="font-weight:700;">${s.full_name||'—'}</div><div style="color:var(--muted);font-size:11px;">${s.email||'—'}</div></div>
+        <span class="badge badge-${s.plan}">${s.plan}</span>
+      </div>`).join('');
+  }
+}
+
+// ===== QUESTIONS =====
+async function loadQuestionsPage(){
+  const{data}=await sb.from('questions').select('*').order('id',{ascending:false}).limit(2000);
+  allQuestions = data || [];
+  filteredQuestions = [...allQuestions];
+  renderQuestions();
+}
+
+function filterQuestions(){
+  const search=document.getElementById('q-search').value.toLowerCase();
+  const subj=document.getElementById('q-filter-subject').value;
+  const type=document.getElementById('q-filter-type').value;
+  filteredQuestions=allQuestions.filter(q=>{
+    const matchSearch=!search||q.question?.toLowerCase().includes(search);
+    const matchSubj=!subj||q.subject===subj;
+    const matchType=!type||q.exam_type===type;
+    return matchSearch&&matchSubj&&matchType;
+  });
+  currentPage=1;
+  renderQuestions();
+}
+
+function renderQuestions(){
+  const start=(currentPage-1)*PAGE_SIZE;
+  const page=filteredQuestions.slice(start,start+PAGE_SIZE);
+  const total=filteredQuestions.length;
+  document.getElementById('q-pagination-info').textContent=`Showing ${start+1}–${Math.min(start+PAGE_SIZE,total)} of ${total}`;
+
+  if(page.length===0){
+    document.getElementById('questions-tbody').innerHTML='<tr><td colspan="7" style="text-align:center;padding:40px;color:var(--muted);">No questions found</td></tr>';
+    return;
+  }
+
+  document.getElementById('questions-tbody').innerHTML=page.map((q,i)=>`
+    <tr>
+      <td style="color:var(--muted);">${start+i+1}</td>
+      <td><div class="q-text" title="${q.question}">${q.question}</div></td>
+      <td><span style="font-size:12px;font-weight:700;">${q.subject}</span></td>
+      <td><span class="badge badge-${q.exam_type?.toLowerCase()}">${q.exam_type}</span></td>
+      <td>${q.year||'—'}</td>
+      <td style="font-weight:800;color:var(--green);">${q.correct_answer}</td>
+      <td>
+        <div style="display:flex;gap:6px;">
+          <button class="btn btn-outline btn-sm" onclick='openEditModal(${JSON.stringify(q).replace(/'/g,"&#39;")})'>Edit</button>
+          <button class="btn btn-red btn-sm" onclick="deleteQuestion(${q.id})">Del</button>
+        </div>
+      </td>
+    </tr>`).join('');
+
+  // Pagination buttons
+  const totalPages=Math.ceil(total/PAGE_SIZE);
+  let btns='';
+  for(let i=1;i<=Math.min(totalPages,10);i++){
+    btns+=`<button class="page-btn ${i===currentPage?'active':''}" onclick="goPage(${i})">${i}</button>`;
+  }
+  document.getElementById('q-pagination-btns').innerHTML=
+    `<button class="page-btn" onclick="goPage(${currentPage-1})" ${currentPage===1?'disabled':''}>‹</button>${btns}<button class="page-btn" onclick="goPage(${currentPage+1})" ${currentPage===totalPages?'disabled':''}>›</button>`;
+}
+
+function goPage(p){
+  const total=Math.ceil(filteredQuestions.length/PAGE_SIZE);
+  if(p<1||p>total)return;
+  currentPage=p;
+  renderQuestions();
+}
+
+// ===== ADD QUESTION =====
+async function saveQuestion(){
+  const q={
+    subject:document.getElementById('aq-subject').value,
+    exam_type:document.getElementById('aq-type').value,
+    year:parseInt(document.getElementById('aq-year').value)||null,
+    question:document.getElementById('aq-question').value.trim(),
+    option_a:document.getElementById('aq-a').value.trim(),
+    option_b:document.getElementById('aq-b').value.trim(),
+    option_c:document.getElementById('aq-c').value.trim(),
+    option_d:document.getElementById('aq-d').value.trim(),
+    correct_answer:document.getElementById('aq-answer').value,
+    explanation:document.getElementById('aq-explanation').value.trim(),
+  };
+  const msg=document.getElementById('aq-msg');
+  if(!q.question||!q.option_a||!q.option_b||!q.option_c||!q.option_d){showMsg(msg,'Please fill in question and all options','error');return;}
+  const{error}=await sb.from('questions').insert(q);
+  if(error){showMsg(msg,'Error: '+error.message,'error');return;}
+  showMsg(msg,'✅ Question saved successfully!','success');
+  clearQuestionForm();
+  toast('Question added!','#22c55e');
+}
+
+function clearQuestionForm(){
+  ['aq-question','aq-a','aq-b','aq-c','aq-d','aq-explanation'].forEach(id=>document.getElementById(id).value='');
+  document.getElementById('aq-year').value='';
+}
+
+// ===== EDIT / DELETE =====
+function openEditModal(q){
+  document.getElementById('eq-id').value=q.id;
+  document.getElementById('eq-subject').value=q.subject;
+  document.getElementById('eq-type').value=q.exam_type;
+  document.getElementById('eq-year').value=q.year||'';
+  document.getElementById('eq-question').value=q.question;
+  document.getElementById('eq-a').value=q.option_a;
+  document.getElementById('eq-b').value=q.option_b;
+  document.getElementById('eq-c').value=q.option_c;
+  document.getElementById('eq-d').value=q.option_d;
+  document.getElementById('eq-answer').value=q.correct_answer;
+  document.getElementById('eq-explanation').value=q.explanation||'';
+  document.getElementById('edit-modal').classList.add('open');
+}
+
+function closeModal(){document.getElementById('edit-modal').classList.remove('open');}
+
+async function updateQuestion(){
+  const id=document.getElementById('eq-id').value;
+  const q={
+    subject:document.getElementById('eq-subject').value,
+    exam_type:document.getElementById('eq-type').value,
+    year:parseInt(document.getElementById('eq-year').value)||null,
+    question:document.getElementById('eq-question').value.trim(),
+    option_a:document.getElementById('eq-a').value.trim(),
+    option_b:document.getElementById('eq-b').value.trim(),
+    option_c:document.getElementById('eq-c').value.trim(),
+    option_d:document.getElementById('eq-d').value.trim(),
+    correct_answer:document.getElementById('eq-answer').value,
+    explanation:document.getElementById('eq-explanation').value.trim(),
+  };
+  const{error}=await sb.from('questions').update(q).eq('id',id);
+  if(error){toast('Error: '+error.message,'#ef4444');return;}
+  closeModal();
+  toast('Question updated!','#22c55e');
+  loadQuestionsPage();
+}
+
+async function deleteQuestion(id){
+  if(!confirm('Delete this question? This cannot be undone.'))return;
+  const{error}=await sb.from('questions').delete().eq('id',id);
+  if(error){toast('Error: '+error.message,'#ef4444');return;}
+  toast('Question deleted','#f59e0b');
+  loadQuestionsPage();
+}
+
+// ===== BULK CSV UPLOAD =====
+let csvData = [];
+
+function handleDrop(e){
+  e.preventDefault();
+  document.getElementById('upload-zone').classList.remove('dragging');
+  const file=e.dataTransfer.files[0];
+  if(file)processCSV(file);
+}
+
+function handleCSV(e){processCSV(e.target.files[0]);}
+
+function processCSV(file){
+  Papa.parse(file,{
+    header:true,skipEmptyLines:true,
+    complete(results){
+      csvData=results.data;
+      document.getElementById('csv-count').textContent=`✅ ${csvData.length} questions ready to upload`;
+      // Preview first 5
+      const heads=Object.keys(csvData[0]||{});
+      document.getElementById('csv-preview-head').innerHTML=heads.map(h=>`<th style="padding:4px 8px;color:var(--muted);font-size:11px;">${h}</th>`).join('');
+      document.getElementById('csv-preview-body').innerHTML=csvData.slice(0,5).map(row=>`<tr>${heads.map(h=>`<td style="padding:4px 8px;color:rgba(241,245,249,0.7);font-size:11px;">${row[h]||''}</td>`).join('')}</tr>`).join('');
+      document.getElementById('csv-preview').style.display='block';
+    },
+    error(err){toast('CSV parse error: '+err.message,'#ef4444');}
+  });
+}
+
+async function uploadCSV(){
+  if(!csvData.length){toast('No data to upload','#ef4444');return;}
+  const btn=document.getElementById('csv-upload-btn');
+  const msg=document.getElementById('csv-msg');
+  btn.textContent='Uploading...';btn.disabled=true;
+  showMsg(msg,'Uploading questions...','success');
+
+  const rows=csvData.map(r=>({
+    subject:r.subject?.trim(),
+    exam_type:r.exam_type?.trim()||r.type?.trim(),
+    year:parseInt(r.year)||null,
+    question:r.question?.trim(),
+    option_a:r.option_a?.trim()||r.optionA?.trim(),
+    option_b:r.option_b?.trim()||r.optionB?.trim(),
+    option_c:r.option_c?.trim()||r.optionC?.trim(),
+    option_d:r.option_d?.trim()||r.optionD?.trim(),
+    correct_answer:r.correct_answer?.trim()||r.answer?.trim(),
+    explanation:r.explanation?.trim()||'',
+  })).filter(r=>r.subject&&r.question&&r.option_a);
+
+  // Upload in batches of 50
+  let uploaded=0;
+  for(let i=0;i<rows.length;i+=50){
+    const batch=rows.slice(i,i+50);
+    const{error}=await sb.from('questions').insert(batch);
+    if(error){showMsg(msg,'Error at batch '+(i/50+1)+': '+error.message,'error');btn.textContent='⬆ Upload All Questions';btn.disabled=false;return;}
+    uploaded+=batch.length;
+    showMsg(msg,`Uploaded ${uploaded} of ${rows.length}...`,'success');
+  }
+
+  showMsg(msg,`✅ Successfully uploaded ${uploaded} questions!`,'success');
+  btn.textContent='⬆ Upload All Questions';btn.disabled=false;
+  csvData=[];
+  toast(`${uploaded} questions uploaded!`,'#22c55e');
+}
+
+function clearCSV(){csvData=[];document.getElementById('csv-preview').style.display='none';document.getElementById('csv-file').value='';}
+
+function downloadTemplate(){
+  const csv='subject,exam_type,year,question,option_a,option_b,option_c,option_d,correct_answer,explanation\nGeography,WAEC,2023,What is the capital of Nigeria?,Lagos,Abuja,Kano,Ibadan,B,Abuja became the capital of Nigeria in 1991.';
+  const a=document.createElement('a');
+  a.href='data:text/csv;charset=utf-8,'+encodeURIComponent(csv);
+  a.download='kumskid_questions_template.csv';
+  a.click();
+}
+
+// ===== STUDENTS =====
+async function loadStudents(){
+  const{data}=await sb.from('profiles').select('*').order('id',{ascending:false});
+  allStudents=data||[];
+  filteredStudents=[...allStudents];
+  renderStudents();
+}
+
+function filterStudents(){
+  const search=document.getElementById('s-search').value.toLowerCase();
+  const plan=document.getElementById('s-filter-plan').value;
+  filteredStudents=allStudents.filter(s=>{
+    const matchSearch=!search||(s.full_name||'').toLowerCase().includes(search)||(s.email||'').toLowerCase().includes(search);
+    const matchPlan=!plan||s.plan===plan;
+    return matchSearch&&matchPlan;
+  });
+  renderStudents();
+}
+
+function renderStudents(){
+  document.getElementById('students-tbody').innerHTML=filteredStudents.map((s,i)=>`
+    <tr>
+      <td style="color:var(--muted);">${i+1}</td>
+      <td style="font-weight:700;">${s.full_name||'—'}</td>
+      <td style="color:var(--muted);font-size:12px;">${s.email||'—'}</td>
+      <td><span class="badge badge-${s.plan||'free'}">${s.plan||'free'}</span></td>
+      <td style="color:var(--muted);font-size:12px;">${s.created_at?new Date(s.created_at).toLocaleDateString('en-NG'):'—'}</td>
+      <td>
+        <button class="btn btn-outline btn-sm" onclick="togglePlan('${s.id}','${s.plan||'free'}')">
+          ${s.plan==='premium'?'→ Free':'→ Premium'}
+        </button>
+      </td>
+    </tr>`).join('');
+}
+
+async function togglePlan(id,currentPlan){
+  const newPlan=currentPlan==='premium'?'free':'premium';
+  if(!confirm(`Change this student to ${newPlan}?`))return;
+  const{error}=await sb.from('profiles').update({plan:newPlan}).eq('id',id);
+  if(error){toast('Error: '+error.message,'#ef4444');return;}
+  toast(`Student moved to ${newPlan}!`,newPlan==='premium'?'#f59e0b':'#22c55e');
+  loadStudents();
+}
+
+// ===== RESULTS =====
+async function loadResults(){
+  let query=sb.from('results').select('*,profiles(full_name,email)').order('created_at',{ascending:false}).limit(200);
+  const subj=document.getElementById('r-filter-subject').value;
+  const type=document.getElementById('r-filter-type').value;
+  if(subj)query=query.eq('subject',subj);
+  if(type)query=query.eq('exam_type',type);
+  const{data}=await query;
+  const results=data||[];
+  document.getElementById('results-tbody').innerHTML=results.map((r,i)=>{
+    const pct=Math.round(r.score/r.total*100);
+    const color=pct>=70?'var(--green)':pct>=50?'var(--blue2)':'var(--red)';
+    const d=new Date(r.created_at).toLocaleDateString('en-NG');
+    return`<tr>
+      <td style="color:var(--muted);">${i+1}</td>
+      <td><div style="font-weight:700;font-size:13px;">${r.profiles?.full_name||'—'}</div><div style="font-size:11px;color:var(--muted);">${r.profiles?.email||'—'}</div></td>
+      <td>${r.subject}</td>
+      <td><span class="badge badge-${r.exam_type?.toLowerCase()}">${r.exam_type}</span></td>
+      <td style="color:var(--green);font-weight:700;">${r.score}</td>
+      <td style="color:var(--muted);">${r.total}</td>
+      <td style="font-family:'Bebas Neue',sans-serif;font-size:1.2rem;color:${color};">${pct}%</td>
+      <td style="color:var(--muted);font-size:12px;">${d}</td>
+    </tr>`;
+  }).join('');
+  if(!results.length) document.getElementById('results-tbody').innerHTML='<tr><td colspan="8" style="text-align:center;padding:40px;color:var(--muted);">No results found</td></tr>';
+}
+
+// ===== ANNOUNCEMENTS =====
+async function loadAnnouncements(){
+  const{data}=await sb.from('announcements').select('*').order('created_at',{ascending:false});
+  const list=document.getElementById('ann-list');
+  if(!data||data.length===0){list.innerHTML='<div style="color:var(--muted);font-size:13px;padding:10px 0;">No announcements yet.</div>';return;}
+  const colors={info:'37,99,235',success:'34,197,94',warning:'245,158,11',urgent:'239,68,68'};
+  list.innerHTML=data.map(a=>{
+    const c=colors[a.type]||colors.info;
+    return`<div style="background:rgba(${c},0.08);border:1px solid rgba(${c},0.3);border-radius:10px;padding:16px;margin-bottom:12px;">
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:10px;margin-bottom:8px;">
+        <div style="font-weight:800;font-size:14px;">${a.title}</div>
+        <div style="display:flex;gap:6px;flex-shrink:0;">
+          <button class="btn btn-outline btn-sm" onclick="toggleAnnouncement(${a.id},${a.active})">${a.active?'Hide':'Show'}</button>
+          <button class="btn btn-red btn-sm" onclick="deleteAnnouncement(${a.id})">Del</button>
+        </div>
+      </div>
+      <div style="font-size:13px;color:rgba(241,245,249,0.7);line-height:1.6;margin-bottom:8px;">${a.message}</div>
+      <div style="font-size:11px;color:var(--muted);">${new Date(a.created_at).toLocaleDateString('en-NG')} · ${a.active?'<span style="color:#22c55e;">Visible to students</span>':'<span style="color:#64748b;">Hidden</span>'}</div>
+    </div>`;
+  }).join('');
+}
+
+async function postAnnouncement(){
+  const title=document.getElementById('ann-title').value.trim();
+  const message=document.getElementById('ann-message').value.trim();
+  const type=document.getElementById('ann-type').value;
+  const msg=document.getElementById('ann-msg');
+  if(!title||!message){showMsg(msg,'Please fill in title and message','error');return;}
+  const{error}=await sb.from('announcements').insert({title,message,type,active:true});
+  if(error){showMsg(msg,'Error: '+error.message,'error');return;}
+  document.getElementById('ann-title').value='';
+  document.getElementById('ann-message').value='';
+  showMsg(msg,'✅ Announcement posted successfully!','success');
+  toast('Announcement posted!','#22c55e');
+  loadAnnouncements();
+}
+
+async function toggleAnnouncement(id,current){
+  await sb.from('announcements').update({active:!current}).eq('id',id);
+  toast(current?'Announcement hidden':'Announcement visible','#f59e0b');
+  loadAnnouncements();
+}
+
+async function deleteAnnouncement(id){
+  if(!confirm('Delete this announcement?'))return;
+  await sb.from('announcements').delete().eq('id',id);
+  toast('Announcement deleted','#ef4444');
+  loadAnnouncements();
+}
+
+// ===== SCHOOLS =====
+function generateSchoolCode(){
+  const chars='ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+  let code='SKL-';
+  for(let i=0;i<4;i++)code+=chars[Math.floor(Math.random()*chars.length)];
+  return code;
+}
+
+function generateSchoolPassword(){
+  const chars='ABCDEFGHJKLMNPQRSTUVWXYZabcdefghjkmnpqrstuvwxyz23456789';
+  const symbols='!@#$%';
+  let pass='';
+  for(let i=0;i<10;i++)pass+=chars[Math.floor(Math.random()*chars.length)];
+  pass+=symbols[Math.floor(Math.random()*symbols.length)];
+  pass+=Math.floor(Math.random()*90+10);
+  document.getElementById('sch-password').value=pass;
+}
+
+function copyCredentials(){
+  const email=document.getElementById('ns-email').textContent;
+  const pass=document.getElementById('ns-pass').textContent;
+  const url='https://kumskid-exam-claude.pages.dev/school.html';
+  const text=`KUMSKID School Login\n\nURL: ${url}\nEmail: ${email}\nPassword: ${pass}`;
+  navigator.clipboard.writeText(text);
+  toast('Login details copied!','#22c55e');
+}
+
+async function createSchool(){
+  const name=document.getElementById('sch-name').value.trim();
+  const email=document.getElementById('sch-email').value.trim();
+  const password=document.getElementById('sch-password').value.trim();
+  const plan=document.getElementById('sch-plan').value;
+  const limit=parseInt(document.getElementById('sch-limit').value)||100;
+  const msg=document.getElementById('sch-msg');
+  if(!name||!email){showMsg(msg,'Please fill in school name and email','error');return;}
+  if(!password){showMsg(msg,'Please generate a password first','error');return;}
+
+  // Generate unique code
+  let code=generateSchoolCode();
+  // Check uniqueness
+  const{data:existing}=await sb.from('schools').select('id').eq('school_code',code);
+  if(existing&&existing.length>0)code=generateSchoolCode()+Math.floor(Math.random()*9);
+
+  const{error}=await sb.from('schools').insert({
+    name,email,school_code:code,plan,max_students:limit,
+    current_students:0,active:false
+  });
+  if(error){showMsg(msg,'Error: '+error.message,'error');return;}
+  showMsg(msg,`✅ School created! Code: ${code} — Activate after payment.`,'success');
+  toast('School account created!','#22c55e');
+
+  // Show step 2 instructions with the credentials to create in Supabase Auth
+  document.getElementById('ns-email').textContent=email;
+  document.getElementById('ns-pass').textContent=password;
+  document.getElementById('sch-next-steps').style.display='block';
+
+  document.getElementById('sch-name').value='';
+  document.getElementById('sch-email').value='';
+  document.getElementById('sch-password').value='';
+  document.getElementById('sch-limit').value='';
+  loadSchools();
+}
+
+async function loadSchools(){
+  const{data:schools}=await sb.from('schools').select('*').order('created_at',{ascending:false});
+  if(!schools||schools.length===0){
+    document.getElementById('schools-tbody').innerHTML='<tr><td colspan="8" style="text-align:center;padding:30px;color:var(--muted);">No schools yet</td></tr>';
+    return;
+  }
+  document.getElementById('schools-tbody').innerHTML=schools.map((s,i)=>{
+    const pct=Math.round(s.current_students/s.max_students*100);
+    const barColor=pct>=90?'var(--red)':pct>=70?'var(--orange)':'var(--green)';
+    return`<tr>
+      <td style="color:var(--muted);">${i+1}</td>
+      <td><div style="font-weight:700;">${s.name}</div><div style="font-size:11px;color:var(--muted);">${s.email}</div></td>
+      <td><span style="font-family:'Space Mono',monospace;font-size:13px;color:var(--blue2);background:rgba(37,99,235,0.1);padding:4px 10px;border-radius:6px;">${s.school_code}</span></td>
+      <td><span style="font-size:12px;font-weight:700;text-transform:capitalize;">${s.plan}</span></td>
+      <td>
+        <div style="font-weight:700;">${s.current_students}/${s.max_students}</div>
+        <div style="height:4px;background:rgba(255,255,255,0.08);border-radius:2px;margin-top:4px;width:80px;">
+          <div style="height:100%;background:${barColor};border-radius:2px;width:${Math.min(pct,100)}%;"></div>
+        </div>
+      </td>
+      <td style="color:var(--muted);">${s.max_students}</td>
+      <td><span style="padding:3px 10px;border-radius:20px;font-size:11px;font-weight:700;background:${s.active?'rgba(34,197,94,0.15)':'rgba(100,116,139,0.15)'};color:${s.active?'var(--green)':'var(--muted)'};">${s.active?'Active':'Inactive'}</span></td>
+      <td>
+        <div style="display:flex;gap:6px;flex-wrap:wrap;">
+          <button class="btn btn-sm ${s.active?'btn-outline':'btn-green'}" onclick="toggleSchool('${s.id}',${s.active})">${s.active?'Deactivate':'Activate'}</button>
+          <button class="btn btn-outline btn-sm" onclick="expandSchool('${s.id}',${s.max_students})">+Limit</button>
+          <button class="btn btn-red btn-sm" onclick="deleteSchool('${s.id}')">Del</button>
+        </div>
+      </td>
+    </tr>`;
+  }).join('');
+}
+
+async function toggleSchool(id,current){
+  const{error}=await sb.from('schools').update({active:!current}).eq('id',id);
+  if(error){toast('Error: '+error.message,'#ef4444');return;}
+  toast(current?'School deactivated':'School activated!',current?'#f59e0b':'#22c55e');
+  loadSchools();
+}
+
+async function expandSchool(id,current){
+  const extra=prompt(`Current limit: ${current}\nEnter new limit (must be higher):`);
+  if(!extra)return;
+  const newLimit=parseInt(extra);
+  if(isNaN(newLimit)||newLimit<=current){toast('New limit must be higher than current','#ef4444');return;}
+  await sb.from('schools').update({max_students:newLimit}).eq('id',id);
+  toast(`Limit expanded to ${newLimit} students!`,'#22c55e');
+  loadSchools();
+}
+
+async function deleteSchool(id){
+  if(!confirm('Delete this school? All linked students will be unlinked.'))return;
+  const{error}=await sb.from('schools').delete().eq('id',id);
+  if(error){
+    toast('Error: '+error.message,'#ef4444');
+    console.error('Delete school error:',error);
+    return;
+  }
+  toast('School deleted','#ef4444');
+  loadSchools();
+}
+
+// Check existing admin session
+sb.auth.getSession().then(async({data:{session}})=>{
+  if(session){
+    const{data:adminCheck}=await sb.from('admins').select('email').eq('email',session.user.email).single();
+    if(adminCheck) showAdminDashboard();
+  }
+});
+</script>
+</body>
+</html>
