@@ -1,0 +1,7 @@
+User-agent: *
+Allow: /
+
+# Block admin and school dashboards from Google indexing
+Disallow: /admin.html
+
+Sitemap: https://kumskid-exam-claude.pages.dev/sitemap.xml
