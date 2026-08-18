@@ -1,0 +1,8 @@
+[{
+      "relation": ["delegate_permission/common.handle_all_urls"],
+      "target": {
+        "namespace": "android_app",
+        "package_name": "dev.pages.kumskid_exam_claude.twa",
+        "sha256_cert_fingerprints": ["90:41:53:06:65:45:55:DE:D7:4F:51:5E:64:9D:62:BF:EB:D1:AD:32:DA:86:50:E2:1A:A7:50:F1:B4:BE:0A:94"]
+      }
+    }]
