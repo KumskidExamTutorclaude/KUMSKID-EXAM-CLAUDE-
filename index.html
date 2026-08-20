@@ -11,6 +11,19 @@
   OneSignalDeferred.push(async function(OneSignal) {
     await OneSignal.init({
       appId: "b8edfb51-6e0a-433b-9b38-c3e4a863f396",
+      slidedown: {
+        prompts: [
+          {
+            type: "push",
+            autoPrompt: true,
+            text: {
+              actionMessage: "Get daily study reminders and WAEC/JAMB exam updates!",
+              acceptButton: "Allow",
+              cancelButton: "Later"
+            }
+          }
+        ]
+      }
     });
   });
 </script>
