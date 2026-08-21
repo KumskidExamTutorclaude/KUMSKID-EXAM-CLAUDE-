@@ -1,8 +1,32 @@
-[{
-      "relation": ["delegate_permission/common.handle_all_urls"],
-      "target": {
-        "namespace": "android_app",
-        "package_name": "dev.pages.kumskid_exam_claude.twa",
-        "sha256_cert_fingerprints": ["90:41:53:06:65:45:55:DE:D7:4F:51:5E:64:9D:62:BF:EB:D1:AD:32:DA:86:50:E2:1A:A7:50:F1:B4:BE:0A:94"]
-      }
-    }]
+[
+  {
+    "relation": ["delegate_permission/common.handle_all_urls"],
+    "target": {
+      "namespace": "android_app",
+      "package_name": "dev.pages.kumskid_exam_claude.twa",
+      "sha256_cert_fingerprints": [
+        "90:41:53:06:65:45:55:DE:D7:4F:51:5E:64:9D:62:BF:EB:D1:AD:32:DA:86:50:E2:1A:A7:50:F1:B4:BE:0A:94"
+      ]
+    }
+  },
+  {
+    "relation": ["delegate_permission/common.handle_all_urls"],
+    "target": {
+      "namespace": "android_app",
+      "package_name": "dev.pages.kumskid_exam_claude.twa",
+      "sha256_cert_fingerprints": [
+        "74:8A:86:F3:6B:A3:B4:79:A4:46:50:F3:51:11:4D:5E:BE:1F:E6:4D:62:FA:0E:C9:47:45:5B:2C:0D:5E:9C:FF"
+      ]
+    }
+  },
+  {
+    "relation": ["delegate_permission/common.handle_all_urls"],
+    "target": {
+      "namespace": "android_app",
+      "package_name": "dev.pages.kumskid_exam_claude.twa",
+      "sha256_cert_fingerprints": [
+        "F1:64:45:A3:4C:F7:59:47:FC:19:28:8D:8E:36:02:CE:F5:18:8A:D6:D5:86:B0:69:88:59:03:0F:98:49:43:54"
+      ]
+    }
+  }
+]
